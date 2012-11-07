@@ -2,364 +2,395 @@
 //  executor.cpp
 //  CSE3341
 //
-//  Created by Mike Zazon on 10/17/12.
+//  Created by Mike Zazon on 10/4/12.
 //  Copyright (c) 2012 Mike Zazon. All rights reserved.
 //
 
 #include "executor.h"
+#include <iostream>
+#include <vector>
 
-Executor::Executor(ParseTree* tree, std::string inputfile)
-{
-    input = new Scanner(inputfile.c_str());
-    this->tree = tree;
-}
 
-void Executor::Start()
+Executor::Executor()
 {
-    PROG();
+    
 }
 
 void Executor::PROG()
 {
-    tree->CursorTo2();
-    STMT_SEQ();
-    tree->CursorToParent();
+	(*MyTree).second();
+	STMT_SEQ();
+	(*MyTree).root();
 }
 
 void Executor::STMT_SEQ()
 {
-    tree->CursorTo1();
-    STMT();
-    tree->CursorToParent();
-    if(tree->getAlt() == 2)
+	(*MyTree).first();
+	STMT();
+	(*MyTree).root();
+    
+	if((*MyTree).getAlt() == 2)
     {
-        tree->CursorTo2();
-        STMT_SEQ();
-        tree->CursorToParent();
-    }
+		(*MyTree).second();
+		STMT_SEQ();
+		(*MyTree).root();
+	}
 }
 
-void Executor::ID_LIST(bool flag)
+void Executor::ID_LIST(bool isUsedFor)
 {
-    tree->CursorTo1();
-    std::string x = ID();
-	if (flag) {
-		if (input->Advance()) {
-			setIDvalue(x, input->GetCurrentNum());
-		} else {
-			std::cout << "Error: unable to find input value in file."
-            << std::endl;
-			exit(0);
+	(*MyTree).first();
+	std::string x = IDD();
+    
+	if(isUsedFor)
+    {
+		if((*inputTokens).Next())
+        {
+			setID(x, (*inputTokens).getv());
 		}
-	} else {
-		if (!isInit(x))
+        else
+        {
+			ThrowExecutorError("input error");
+		}
+	}
+    else
+    {
+		if(!SYMBOL_INIT_FLAG(x))
 		{
-			std::cout << "Error: use of ID " << x
-            << " before it is initialized" << std::endl;
+			ThrowExecutorError("symbol not init");
 		}
 		else
 		{
-			std::cout << getIDvalue(x) << std::endl;
+			std::cout << get(x) << std::endl;
 		}
 	}
-	tree->CursorToParent();
-	if (tree->getAlt() == 2) {
-		tree->CursorTo2();
-		ID_LIST(flag);
-		tree->CursorToParent();
+	(*MyTree).root();
+	if((*MyTree).getAlt() == 2)
+    {
+		(*MyTree).second();
+		ID_LIST(isUsedFor);
+		(*MyTree).root();
 	}
-    
+
 }
-    
-void Executor::STMT() {
-	int x = tree->getAlt();
-	tree->CursorTo1();
-	switch (x) {
-        case 1:
-            ASSIGN();
-            break;
-        case 2:
-            IF();
-            break;
-        case 3:
-            LOOP();
-            break;
-        case 4:
-            IN();
-            break;
-        case 5:
-            OUT();
-            break;
-        //TODO: case 6:
-           // CASE();
-           // break;
+void Executor::STMT()
+{
+	int x = (*MyTree).getAlt();
+	(*MyTree).first();
+	switch (x)
+    {
+	case 1:
+		ASSIGN();
+		break;
+	case 2:
+		IFF();
+		break;
+	case 3:
+		DOLOOP();
+		break;
+	case 4:
+		INN();
+		break;
+	case 5:
+		OUT();
+		break;
+	case 6:
+		CASE_STMT();
+		break;
 	}
-	tree->CursorToParent();
+	(*MyTree).root();
 }
-
-void Executor::ASSIGN() {
-	tree->CursorTo1();
-	std::string id = ID();
-	tree->CursorToParent();
-	tree->CursorTo2();
-	setIDvalue(id, EXPR());
-	tree->CursorToParent();
+void Executor::ASSIGN()
+{
+	(*MyTree).first();
+	std::string ID = IDD();
+	(*MyTree).root();
+	(*MyTree).second();
+	setID(ID, EXPR());
+	(*MyTree).root();
 }
-
-void Executor::IN() {
-	tree->CursorTo1();
+void Executor::INN()
+{
+	(*MyTree).first();
 	ID_LIST(true);
-	tree->CursorToParent();
+	(*MyTree).root();
 }
-void Executor::IF() {
-	tree->CursorTo1();
-	if (COND()) {
-		tree->CursorToParent();
-		tree->CursorToParent();
+void Executor::IFF()
+{
+	(*MyTree).first();
+	if(COND())
+    {
+		(*MyTree).root();
+		(*MyTree).second();
 		STMT_SEQ();
-		tree->CursorToParent();
-	} else {
-		tree->CursorToParent();
-		if (tree->getAlt() == 2) {
-			tree->CursorTo3();
+		(*MyTree).root();
+	}
+    else
+    {
+		(*MyTree).root();
+		if((*MyTree).getAlt() == 2)
+        {
+			(*MyTree).third();
 			STMT_SEQ();
-			tree->CursorToParent();
+			(*MyTree).root();
 		}
 	}
 }
-void Executor::LOOP() {
+void Executor::DOLOOP()
+{
+
+	(*MyTree).second();
     
-	tree->CursorTo2();
-	if (COND()) {
-		tree->CursorToParent();
-		tree->CursorTo1();
+	if(COND())
+    {
+		(*MyTree).root();
+		(*MyTree).first();
 		STMT_SEQ();
-		tree->CursorToParent();
-		LOOP();
+		(*MyTree).root();
+		DOLOOP();
 	}
 	else
 	{
-		tree->CursorToParent();
+		(*MyTree).root();
 	}
 }
-
-bool Executor::COND() {
-	bool flag;
-	bool temp;
-	switch (tree->getAlt()) {
-        case 1:
-            tree->CursorTo1();
-            flag = COMP();
-            tree->CursorToParent();
-            break;
-        case 2:
-            tree->CursorTo1();
-            flag = !COND();
-            tree->CursorTo1();
-            break;
-        case 3:
-            tree->CursorTo1();
-            temp = COND();
-            tree->CursorToParent();
-            tree->CursorTo2();
-            flag = temp && COND();
-            tree->CursorToParent();
-            break;
-        case 4:
-            tree->CursorTo1();
-            temp = COND();
-            tree->CursorToParent();
-            tree->CursorTo2();
-            flag = temp || COND();
-            tree->CursorToParent();
-            break;
-	}
-	return flag;
-}
-
-bool Executor::COMP() {
-	int x, y;
-	bool flag;
-	tree->CursorTo1();
-	x = FACTOR();
-	tree->CursorToParent();
-	tree->CursorTo3();
-	y = FACTOR();
-	tree->CursorToParent();
-	tree->CursorTo2();
-	switch (tree->getAlt()) {
-        case 1:
-            flag = x < y;
-            break;
-        case 2:
-            flag = x == y;
-            break;
-        case 3:
-            flag = x != y;
-            break;
-        case 4:
-            flag = x > y;
-            break;
-        case 5:
-            flag = x >= y;
-            break;
-        case 6:
-            flag = x <= y;
-            break;
-	}
-	tree->CursorToParent();
-	return flag;
-    
-}
-
-//TODO: need comparison operator execution
-std::string Executor::COMP_OP()
+bool Executor::COND()
 {
-    return tree->getValue();
+	bool ret;
+	bool temp;
+	switch ((*MyTree).getAlt())
+    {
+	case 1:
+		(*MyTree).first();
+		ret = COMP();
+		(*MyTree).root();
+		break;
+	case 2:
+		(*MyTree).first();
+		ret = !COND();
+		(*MyTree).root();
+		break;
+	case 3:
+		(*MyTree).first();
+		temp = COND();
+		(*MyTree).root();
+		(*MyTree).second();
+		ret = temp && COND();
+		(*MyTree).root();
+		break;
+	case 4:
+		(*MyTree).first();
+		temp = COND();
+		(*MyTree).root();
+		(*MyTree).second();
+		ret = temp || COND();
+		(*MyTree).root();
+		break;
+	}
+	return ret;
 }
-
-int Executor::EXPR() {
+bool Executor::COMP()
+{
 	int x, y;
-	tree->CursorTo1();
+	bool ret;
+	(*MyTree).first();
+	x = FACTOR();
+	(*MyTree).root();
+	(*MyTree).third();
+	y = FACTOR();
+	(*MyTree).root();
+	(*MyTree).second();
+	switch ((*MyTree).getAlt()) {
+	case 1:
+		ret = x < y;
+		break;
+	case 2:
+		ret = x == y;
+		break;
+	case 3:
+		ret = x != y;
+		break;
+	case 4:
+		ret = x > y;
+		break;
+	case 5:
+		ret = x >= y;
+		break;
+	case 6:
+		ret = x <= y;
+		break;
+	}
+	(*MyTree).root();
+	return ret;
+
+}
+TokenEnum Executor::COMP_OP()
+{
+	return (*MyTree).getType();
+}
+int Executor::EXPR()
+{
+	int x, y;
+	(*MyTree).first();
 	x = TERM();
-	tree->CursorToParent();
-	if (tree->getAlt() == 2) {
-		tree->CursorTo2();
+	(*MyTree).root();
+	if((*MyTree).getAlt() == 2) {
+		(*MyTree).second();
 		y = EXPR();
-		tree->CursorToParent();
+		(*MyTree).root();
 		return x + y;
-	} else if (tree->getAlt() == 3) {
-		tree->CursorTo2();
+	} else if((*MyTree).getAlt() == 3) {
+		(*MyTree).second();
 		y = EXPR();
-		tree->CursorToParent();
+		(*MyTree).root();
 		return x - y;
 	}
 	return x;
 }
 
-int Executor::TERM() {
+int Executor::TERM()
+{
 	int x, y;
-	tree->CursorTo1();
+	(*MyTree).first();
 	x = FACTOR();
-	tree->CursorToParent();
-	if (tree->getAlt() == 2) {
-		tree->CursorTo2();
+	(*MyTree).root();
+	if((*MyTree).getAlt() == 2) {
+		(*MyTree).second();
 		y = TERM();
-		tree->CursorToParent();
+		(*MyTree).root();
 		return x * y;
 	}
 	return x;
 }
-
-int Executor::FACTOR() {
-	int a = tree->getAlt();
+int Executor::FACTOR()
+{
+	int Alt = (*MyTree).getAlt();
 	int ret;
-	std::string s;
-	tree->CursorTo1();
-	switch (a) {
-        case 1:
-            ret = CONST();
-            break;
-        case 2:
-            s = ID();
-            if(isInit(s))
-            {
-                ret = getIDvalue(s);
-            }
-            else
-            {
-                std::cout << "ERROR: attempt to use ID "<< s << " before it is initialized.";
-                exit(0);
-            }
-            break;
-        case 3:
-            ret = EXPR();
-            break;
+	std::string x;
+	(*MyTree).first();
+	switch (Alt) {
+	case 1:
+		ret = CONST();
+		break;
+	case 2:
+		x = IDD();
+		if(SYMBOL_INIT_FLAG(x))
+				{
+		ret = get(x);
+				}
+		else
+		{
+			ThrowExecutorError("not initialized error");
+		}
+		break;
+	case 3:
+		ret = (-1)*FACTOR();
+		break;
+    case 4:
+        ret = EXPR();
+        break;
+            
 	}
-	tree->CursorToParent();
+	(*MyTree).root();
 	return ret;
 }
-/*
-void Executor::CASE() {
-	tree->CursorTo1();
-    //TODO: this might not work properly (dereferencing)
-	std::string ID = this->ID();
-	tree->CursorToParent();
-	tree->CursorTo2();
-	setIDvalue(ID, CASE_SEQ(ID));
-	tree->CursorToParent();
-} */
-/*
-int Executor::CASE_SEQ(std::string ID) {
-	int ret;
-	tree->CursorTo1();
-	tree->CursorTo1();
-	if (execLTGT(getIDvalue(ID))) {
-		tree->MoveToParent();
-		solution = execCase();
-		tree->MoveToParent();
-	} else {
-		tree->MoveToParent();
-		tree->MoveToParent();
-		if (tree->getAlt() == 1) {
-			tree->MoveToSecond();
-			solution = execDefault();
-		} else {
-			tree->MoveToSecond();
-			solution = execCase_Seq(ID);
-		}
-		tree->MoveToParent();
+void Executor::CASE_STMT()
+{
+	(*MyTree).first();
+	std::string ID = IDD();
+	(*MyTree).root();
+	(*MyTree).second();
+	setID(ID, CASE_SEQ(ID));
+	(*MyTree).root();
+}
+int Executor::CASE_SEQ(std::string ID)
+{
+	int ret=0;
+    (*MyTree).first();
+    if(get(ID) == CONST())
+        ret = EXPR();
+    
+	return ret;
+}
+
+void Executor::CONST_LIST()
+{
+	(*MyTree).first();
+	int x = CONST();
+	(*MyTree).root();
+	if((*MyTree).getAlt() == 2)
+    {
+		(*MyTree).second();
+		CONST_LIST();
+		(*MyTree).root();
 	}
-	return solution;
+    //remove when done
+    x=0;
 }
 
-int Executor::CASE_STMT() {
-	tree->MoveToSecond();
-	int x = execEXP();
-	tree->MoveToParent();
-	return x;
-}
-*/
-
-void Executor::OUT() {
-	tree->CursorTo1();
+void Executor::OUT()
+{
+	(*MyTree).first();
 	ID_LIST(false);
-	tree->CursorToParent();
+	(*MyTree).root();
 }
-
-std::string Executor::ID() {
-	return tree->getValue();
+std::string Executor::IDD()
+{
+	return (*MyTree).getID();
 }
-
-int Executor::CONST() {
-	return atoi(tree->getValue().c_str());
+int Executor::CONST()
+{
+	return (*MyTree).getConst();
 }
-
-void Executor::setIDvalue(std::string s, int value) {
-	for (int i = 0; i < tree->SymbolTableSize(); i++) {
-		if (s == tree->GetSymbol(i)) {
-			//TODO: need to fill the ID values in asap
+void Executor::setID(std::string x, int value)
+{
+	for (int i = 0; i < (*MyTree).getNumSymbols(); i++)
+    {
+		if(x == (*MyTree).getSymbolList()[i].ID) {
+			(*MyTree).getSymbolList()[i].value = value;
+			(*MyTree).getSymbolList()[i].SYMBOL_INIT_FLAG = true;
 		}
 	}
 }
 
-int Executor::getIDvalue(std::string s) {
-	for (int i = 0; i < tree->SymbolTableSize(); i++) {
-		if (s == tree->GetSymbol(i)) {
-			return atoi(tree->GetSymbol(i).c_str());
+int Executor::get(std::string x)
+{
+	for (int i = 0; i < (*MyTree).getNumSymbols(); i++)
+    {
+		if(x == (*MyTree).getSymbolList()[i].ID) {
+			return (*MyTree).getSymbolList()[i].value;
 		}
 	}
-    return 99;
+    return 0;
 }
 
-bool Executor::isInit(std::string s) {
-	for (int i = 0; i < tree->SymbolTableSize(); i++) {
-		if (s == tree->GetSymbol(i)) {
-			if (true)
-				return true;
-			else
-				return false;
+bool Executor::SYMBOL_INIT_FLAG(std::string x)
+{
+	for (int i = 0; i < (*MyTree).getNumSymbols(); i++)
+    {
+		if(x == (*MyTree).getSymbolList()[i].ID)
+        {
+			if((*MyTree).getSymbolList()[i].SYMBOL_INIT_FLAG) return true;
+			else return false;
 		}
 	}
 	return false;
+}
+
+void Executor::start(ParseTree* tree, std::string inputFile)
+{
+    MyTree = tree;
+	inputTokens = new Scanner(inputFile.c_str());
+	PROG();
+}
+
+void Executor::ThrowExecutorError(std::string s)
+{
+
+    std::cout << "*** FATAL EXECUTOR ERROR: unexpected token or end of file.  Exiting to OS. ***" << std::endl;
+    if(s != "")
+    {
+        std::cout << "*** More Information: " << s << std::endl;
+    }
+    exit(1);
 }

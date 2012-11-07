@@ -9,27 +9,26 @@
 #ifndef __CSE3341__scanner__
 #define __CSE3341__scanner__
 
-#include <iostream>
+#include <fstream>
 #include <string>
-#include <set>
 #include "tokenizer.h"
 
-class Scanner {
-private:
-    std::string previous;
-    std::string current;
-    Tokenizer tokens;
-    std::set<std::string> setOfKeywords;
-public:
-    Scanner();
-    Scanner(const std::string filename);
-    std::string GetCurrent();
-    bool Advance();
-    std::string PeekAhead();
-    bool CurrentIsID();
-    bool CurrentIsCONST();
-    int GetCurrentNum();
-    
-};
 
+class Scanner {
+public:
+	Scanner(std::string filename);
+	Token get();
+    bool Next();
+	bool Advance();
+	int getLine();
+	int getv();
+private:
+    Tokenizer tokens;
+    std::string current;
+	Token MyToken;
+    bool isNum(char c);
+	TokenEnum Match(std::string s);
+	int line;
+	int CurrentValue;
+};
 #endif /* defined(__CSE3341__scanner__) */

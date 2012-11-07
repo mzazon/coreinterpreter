@@ -1,107 +1,77 @@
 //
-//  parsetreenode.cpp
+//  parsetreeleaf.cpp
 //  CSE3341
 //
-//  Created by Mike Zazon on 10/5/12.
+//  Created by Mike Zazon on 10/4/12.
 //  Copyright (c) 2012 Mike Zazon. All rights reserved.
 //
 
-#include <iostream>
 #include "parsetreeleaf.h"
 
-ParseTreeLeaf::ParseTreeLeaf()
+TokenEnum ParseTreeLeaf::getType()
 {
-
+    return type.token;
 }
 
-bool ParseTreeLeaf::setValue(std::string v)
+std::string ParseTreeLeaf::getID()
 {
-    value = v;
-    return true;
+    return type.string;
 }
 
-std::string ParseTreeLeaf::getValue()
+int ParseTreeLeaf::getConst()
 {
-    return value;
+    return type.value;
 }
 
-bool ParseTreeLeaf::setAlt(int a)
+int ParseTreeLeaf::getAlt()
 {
-    alt = a;
-    return true;
+    return Alt;
 }
 
-unsigned int ParseTreeLeaf::getAlt()
+ParseTreeLeaf* ParseTreeLeaf::node1()
 {
-    return alt;
+    return First;
 }
 
-ParseTreeLeaf* ParseTreeLeaf::GetParent()
+ParseTreeLeaf* ParseTreeLeaf::node2()
 {
-    return parent;
+    return Second;
 }
 
-ParseTreeLeaf* ParseTreeLeaf::GetChild1()
+ParseTreeLeaf* ParseTreeLeaf::node3()
 {
-    return child1;
+    return Third;
 }
 
-ParseTreeLeaf* ParseTreeLeaf::GetChild2()
+ParseTreeLeaf* ParseTreeLeaf::rootnode()
 {
-    return child2;
+    return Parent;
 }
 
-ParseTreeLeaf* ParseTreeLeaf::GetChild3()
+void ParseTreeLeaf::setToken(Token x)
 {
-    return child3;
+    type = x;
 }
 
-ParseTreeLeaf* ParseTreeLeaf::GetChild4()
+void ParseTreeLeaf::setAlt(int x)
 {
-    return child4;
+    Alt = x;
 }
 
-ParseTreeLeaf* ParseTreeLeaf::GetChild5()
+void ParseTreeLeaf::SetLeaf1(ParseTreeLeaf* x)
 {
-    return child5;
-}
-bool ParseTreeLeaf::SetParent(ParseTreeLeaf* p)
-{
-    parent = p;
-    return true;
+    First = x;
+    x->Parent = this;
 }
 
-bool ParseTreeLeaf::SetChild1(ParseTreeLeaf* c)
+void ParseTreeLeaf::SetLeaf2(ParseTreeLeaf* x)
 {
-    child1 = c;
-    (*child1).SetParent(this);
-    return true;
+    Second = x;
+    x->Parent = this;
 }
 
-bool ParseTreeLeaf::SetChild2(ParseTreeLeaf* c)
+void ParseTreeLeaf::SetLeaf3(ParseTreeLeaf* x)
 {
-    child2 = c;
-    (*child2).SetParent(this);
-    return true;
-}
-
-bool ParseTreeLeaf::SetChild3(ParseTreeLeaf* c)
-{
-    child3 = c;
-    (*child3).SetParent(this);
-    return true;
-}
-
-bool ParseTreeLeaf::SetChild4(ParseTreeLeaf* c)
-{
-    child4 = c;
-    (*child4).SetParent(this);
-    return true;
-}
-
-bool ParseTreeLeaf::SetChild5(ParseTreeLeaf* c)
-{
-    child5 = c;
-    (*child5).SetParent(this);
-    return true;
+    Third = x;
+    x->Parent = this;
 }

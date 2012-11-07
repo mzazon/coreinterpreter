@@ -7,26 +7,25 @@
 //
 
 #include <iostream>
-#include "tokenizer.h"
-#include "scanner.h"
-#include "parsetree.h"
 #include "parser.h"
 #include "printer.h"
 #include "executor.h"
+#include "parsetree.h"
 
-int main(int argc, const char * argv[])
+int main(int argc, char** argv)
 {
-    //check command line parameters and throw usage tip if incorrect
-    if ( argc != 2 ) std::cout<<"usage: "<< argv[0] <<" <filename>" << std::endl;
-    else
-    {
-        Parser parser(argv[1]);
-        Printer printer(parser.GetTree());
-        ParseTree* tree = parser.GetTree();
-        Executor* exe = new Executor(tree, argv[2]);
-        exe->Start();
-    }
+    Parser parser;
+    Executor e;
+    Printer pr;
     
-    return 0;
+    //call parser and build parse tree
+	ParseTree* pt = parser.start(argv[1]);
+    
+    //call printer
+	pr.start(pt);
+    
+    //call executor
+	e.start(pt,argv[2]);
+
 }
 

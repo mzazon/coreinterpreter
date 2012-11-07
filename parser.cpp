@@ -2,549 +2,668 @@
 //  parser.cpp
 //  CSE3341
 //
-//  Created by Mike Zazon on 10/15/12.
+//  Created by Mike Zazon on 10/4/12.
 //  Copyright (c) 2012 Mike Zazon. All rights reserved.
 //
 
 #include "parser.h"
+#include "scanner.h"
+#include "tokenizer.h"
+#include <iostream>
 
-Parser::Parser(std::string filename)
+
+Parser::Parser()
 {
-    //init all members
-    scanner = new Scanner(filename);
-    st = new SymbolTable();
-    t = new ParseTree();
-    token = "init";
-    
-    //start the parser
-    t = PROG();
+
 }
-void Parser::Error(std::string s)
+
+ParseTree* Parser::PROG()
 {
-    std::cout << "*** FATAL SCANNER ERROR: " << s << "***" << std::endl;
-    exit(1);
-}
-ParseTree * Parser::PROG()
-{
-    ParseTree * retTree = new ParseTree();
+	ParseTree* retTree = new ParseTree();
     
-    if((*scanner).GetCurrent() == "program")
+	(*retTree).setToken((*parser).get());
+
+	if(!(*parser).Advance()) ThrowParserError();
+    
+	if((*parser).get().token == INT)
     {
-        (*retTree).setValue((*scanner).GetCurrent());
-        (*scanner).Advance();
-        if((*scanner).GetCurrent() == "int")
+		(*retTree).SetLeaf1(DECL_SEQ()->getLeaf());
+        
+		if((*parser).get().token == BEGIN)
         {
-            (*retTree).SetChild1((*DECL_SEQ()).Cursor());
-            if((*scanner).GetCurrent() == "begin")
+			if(!(*parser).Advance()) ThrowParserError();
+            
+			(*retTree).SetLeaf2(STMT_SEQ()->getLeaf());
+            
+			if(((*parser).get().token == END) && !(*parser).Advance())
             {
-                (*scanner).Advance(); //advance begin
-                (*retTree).SetChild2((*STMT_SEQ()).Cursor());
-                if((*scanner).GetCurrent() == "end")
-                {
-                    (*retTree).setAlt(1);
-                    return retTree;
-                }
-                else
-                {
-                    Error("Expected end token, got " + (*scanner).GetCurrent() + " instead.");
-                }
-            }
+				(*retTree).setAlt(1);
+				return retTree;
+			}
             else
             {
-                Error("Expected begin token, got " + (*scanner).GetCurrent() + " instead.");
-            }
-        }
+				ThrowParserError();
+			}
+		}
         else
         {
-            Error("Expected int (DECL_STMT) token, got " + (*scanner).GetCurrent() + " instead.");
-        }
-    }
+			ThrowParserError();
+		}
+	}
     else
     {
-        Error("Expected program token, got " + (*scanner).GetCurrent() + " instead.");
-    }
-    //return retTree;
-}
-ParseTree * Parser::DECL_SEQ()
-{
-    ParseTree * retTree = new ParseTree();
-    
-    (*retTree).setValue((*scanner).GetCurrent());
-    (*retTree).SetChild1((*DECL()).Cursor());
-    
-    
-    if((*scanner).GetCurrent() == "int")
-    {
-        (*retTree).SetChild2((*DECL_SEQ()).Cursor());
-        (*retTree).setAlt(2);
-        return retTree;
-    }
-    (*retTree).setAlt(1);
+        ThrowParserError();
+	}
     return retTree;
 }
-ParseTree * Parser::STMT_SEQ()
-{
-    ParseTree * retTree = new ParseTree();
 
-    (*retTree).setValue((*scanner).GetCurrent());
-    (*retTree).SetChild1((*STMT()).Cursor());
-    (*retTree).setAlt(1);
+ParseTree* Parser::DECL_SEQ()
+{
+	ParseTree* retTree = new ParseTree();
     
-    if(!(*scanner).CurrentIsID() && !((*scanner).GetCurrent() == "do") && !((*scanner).GetCurrent() == "input") && !((*scanner).GetCurrent() == "output") && !((*scanner).GetCurrent() == "if") && !((*scanner).GetCurrent() == "while") && !((*scanner).GetCurrent() == "enddo"))
+	(*retTree).setToken((*parser).get());
+
+	(*retTree).SetLeaf1(DECL()->getLeaf());
+	
+    if((*parser).get().token == INT)
     {
-        (*retTree).setAlt(1);
-    }
+		(*retTree).SetLeaf2(DECL_SEQ()->getLeaf());
+		(*retTree).setAlt(2);
+		return retTree;
+	}
+    
+	(*retTree).setAlt(1);
+	return retTree;
+}
+
+ParseTree* Parser::STMT_SEQ()
+{
+	ParseTree* retTree = new ParseTree();
+	(*retTree).SetLeaf1(STMT()->getLeaf());
+    
+	if(!((*parser).get().token == IF) && !((*parser).get().token == DO) && !((*parser).get().token == ID) && !((*parser).get().token == CASE) && !((*parser).get().token == INPUT) && !((*parser).get().token == OUTPUT))
+    {
+		(*retTree).setAlt(1);
+	}
     else
     {
-        (*retTree).setAlt(2);
-        (*retTree).SetChild2((*STMT_SEQ()).Cursor());
-    }
+		(*retTree).setAlt(2);
+		(*retTree).SetLeaf2(STMT_SEQ()->getLeaf());
+	}
+	return retTree;
+}
 
-    return retTree;
-}
-ParseTree * Parser::DECL()
+ParseTree* Parser::DECL()
 {
-    ParseTree * retTree = new ParseTree();
+	ParseTree* retTree = new ParseTree();
     
-    //this line below may not be needed to set value properly
-    (*retTree).setValue((*scanner).GetCurrent());
+	if(!(*parser).Advance()) ThrowParserError();
     
-    (*scanner).Advance();
+	(*retTree).SetLeaf1(ID_LIST(false)->getLeaf());
+    
+	if(!((*parser).get().token == SEMI_COLON)) ThrowParserError();
 
-    (*retTree).SetChild1((*ID_LIST()).Cursor());
+	if(!(*parser).Advance()) ThrowParserError();
     
-    if(!((*scanner).GetCurrent() == ";"))
-    {
-        Error("Expected ; token, got " + (*scanner).GetCurrent() + " instead.");
-    }
-    
-    (*scanner).Advance(); //advance the ;
-    
-    
-    return retTree;
+	return retTree;
 }
-ParseTree * Parser::STMT()
-{
-    ParseTree * retTree = new ParseTree();
-    
-    /*
-    switch(token)
-    {
-        case "if":
-            //do
-            break;
-        case "do":
-            //do
-            break;
-        case "input";
-            //do
-            break;
-        case "output":
-            //do
-            break;
-            
-        default:
-            //default statement
-    }
-    */
-    if((*scanner).CurrentIsID())
-    {
-        //parse assign alt 1
-        (*retTree).SetChild1((*ASSIGN()).Cursor());
-        (*retTree).setAlt(1);
-    }
-    else if((*scanner).GetCurrent() == "if")
-    {
-        //parse assign alt 2
-        (*retTree).SetChild1((*IF()).Cursor());
-        (*retTree).setAlt(2);
-    }
-    else if((*scanner).GetCurrent() == "do")
-    {
-        //parse assign alt 3
-        (*retTree).SetChild1((*LOOP()).Cursor());
-        (*retTree).setAlt(3);
-    }
-    else if((*scanner).GetCurrent() == "input")
-    {
-        //parse assign alt 4
-        (*retTree).SetChild1((*IN()).Cursor());
-        (*retTree).setAlt(4);
-    }
-    else if((*scanner).GetCurrent() == "output")
-    {
-        //parse assign alt 5
-        (*retTree).SetChild1((*OUT()).Cursor());
-        (*retTree).setAlt(5);
-    }
-    else if((*scanner).GetCurrent() == "case")
-    {
-        //parse alt 6
-        (*retTree).SetChild1((*CASE()).Cursor());
-        (*retTree).setAlt(6);
-    }
-    else
-    {
-        //invalid statement
-        Error("Expected an if/do/input/output/case/assign token, got " + (*scanner).GetCurrent() + " instead.");
-    }
 
-    return retTree;
-}
-ParseTree * Parser::ID_LIST()
+ParseTree* Parser::ID_LIST(bool in)
 {
-    ParseTree * retTree = new ParseTree();
+	ParseTree* retTree = new ParseTree();
     
-    //check here for: declaration, double declaration, and unexpected input here.
-    
-    (*retTree).SetChild1((*ID()).Cursor());
-    
-    if((*scanner).GetCurrent() == ",")
+	if(!((*parser).get().token == ID))
     {
-        (*scanner).Advance();
-        (*retTree).SetChild2((*ID_LIST()).Cursor());
-        (*retTree).setAlt(2);
-    }
-    else
+		ThrowParserError();
+	}
+	if(in)
     {
-        //we use alt 1 here if list is gone
-        (*retTree).setAlt(1);
-    }
-    return retTree;
-}
-ParseTree * Parser::ASSIGN()
-{
-    ParseTree * retTree = new ParseTree();
-    
-    //TODO: check if its already declared, replace true below
-    if((*st).IsInTable((*scanner).GetCurrent()))
-    {
-        (*retTree).SetChild1((*ID()).Cursor());
-        if(!((*scanner).GetCurrent() == ":="))
+		if(!isin((*parser).get().string))
         {
-            Error("Expected an := token, got " + (*scanner).GetCurrent() + " instead.");
-        }
-        std::cout << " DEBUG ***************** " << (*scanner).GetCurrent() << std::endl;
-        (*scanner).Advance();
-        std::cout << " DEBUG ***************** " << (*scanner).GetCurrent() << std::endl;
-        (*retTree).SetChild2((*EXPR()).Cursor());
+			ThrowParserError();
+		}
+	}
+    else
+    {
+		if(isin((*parser).get().string))
+        {
+			ThrowParserError();
+		}
+	}
+
+	(*retTree).SetLeaf1(ID_TERMINAL()->getLeaf());
+    
+	if((*parser).get().token == COMMA)
+    {
+		if(!(*parser).Advance()) ThrowParserError();
+		(*retTree).SetLeaf2(ID_LIST(in)->getLeaf());
+		(*retTree).setAlt(2);
+	}
+    else
+    {
+		(*retTree).setAlt(1);
+	}
+	return retTree;
+
+}
+ParseTree* Parser::STMT()
+{
+	ParseTree* retTree = new ParseTree();
+    
+	if((*parser).get().token == ID)
+    {
+		(*retTree).SetLeaf1(ASSIGN()->getLeaf());
+		(*retTree).setAlt(1);
+	}
+    else if((*parser).get().token == IF)
+    {
+		(*retTree).SetLeaf1(IFF()->getLeaf());
+		(*retTree).setAlt(2);
+	}
+    else if((*parser).get().token == DO)
+    {
+		(*retTree).SetLeaf1(DOWHILE()->getLeaf());
+		(*retTree).setAlt(3);
+	}
+    else if((*parser).get().token == INPUT)
+    {
+		(*retTree).SetLeaf1(IN()->getLeaf());
+		(*retTree).setAlt(4);
+	}
+    else if((*parser).get().token == OUTPUT)
+    {
+		(*retTree).SetLeaf1(OUT()->getLeaf());
+		(*retTree).setAlt(5);
+	}
+    else if((*parser).get().token == CASE)
+    {
+		(*retTree).SetLeaf1(CASE_STMT()->getLeaf());
+		(*retTree).setAlt(6);
+	}
+    else
+    {
+		ThrowParserError();
+	}
+	return retTree;
+}
+ParseTree* Parser::ASSIGN()
+{
+	ParseTree* retTree = new ParseTree();
+    
+	if((isin((*parser).get().string)))
+    {
+		(*retTree).SetLeaf1(ID_TERMINAL()->getLeaf());
+		if(!((*parser).get().token == ASSIGNMENT))
+        {
+			ThrowParserError();
+		}
         
-        if(!((*scanner).GetCurrent() == ";"))
-        {
-            Error("Expected a ; token, got " + (*scanner).GetCurrent() + " instead.");
-        }
-        (*scanner).Advance();
+		if(!(*parser).Advance()) ThrowParserError();
+		(*retTree).SetLeaf2(EXPR()->getLeaf());
         
-    }
+		if(!((*parser).get().token == SEMI_COLON))
+        {
+			ThrowParserError();
+		}
+
+		if(!(*parser).Advance()) ThrowParserError();
+
+	}
     else
     {
-        Error((*scanner).GetCurrent() + " symbol is not declared in declr statements at beginning of program.");
-    }
+		ThrowParserError();
+	}
+	return retTree;
 
-    return retTree;
 }
-ParseTree * Parser::IF()
+ParseTree* Parser::IN()
 {
-    ParseTree * retTree = new ParseTree();
-    
-    (*scanner).Advance();
-    
-    (*retTree).SetChild1((*COND()).Cursor());
-    
-    //next token should be then
-    
-    if(!((*scanner).GetCurrent() == "then"))
-    {
-        Error("Expected then token, got " + (*scanner).GetCurrent() + " instead.");
-    }
-    (*scanner).Advance();
-    (*retTree).setAlt(1);
-    (*retTree).SetChild2((*STMT_SEQ()).Cursor());
-    if((*scanner).GetCurrent() == "else")
-    {
-        (*scanner).Advance();
-        (*retTree).setAlt(2);
-        (*retTree).SetChild3((*STMT_SEQ()).Cursor());
-    }
-    if(!((*scanner).GetCurrent() == "endif"))
-    {
-        Error("Expected endif token, got " + (*scanner).GetCurrent() + " instead.");
-    }
-    (*scanner).Advance();
-    if(!((*scanner).GetCurrent() == ";"))
-    {
-        Error("Expected ; token, got " + (*scanner).GetCurrent() + " instead.");
-    }
-    (*scanner).Advance();
-    
-    
+	ParseTree* retTree = new ParseTree();
 
-    return retTree;
-}
-ParseTree * Parser::LOOP()
-{
-    ParseTree * retTree = new ParseTree();
-
-    return retTree;
-}
-ParseTree * Parser::IN()
-{
-    ParseTree * retTree = new ParseTree();
-    //get input token
-    (*scanner).Advance();
-    (*retTree).SetChild1((*ID_LIST()).Cursor());
-    if(!((*scanner).GetCurrent() == ";"))
+	if(!(*parser).Advance()) ThrowParserError();
+    
+	(*retTree).SetLeaf1(ID_LIST(true)->getLeaf());
+    
+	if(!((*parser).get().token == SEMI_COLON))
     {
-        Error("Expected ; token, got " + (*scanner).GetCurrent() + " instead.");
+		ThrowParserError();
+	}
+
+	if(!(*parser).Advance()) ThrowParserError();
+	
+    return retTree;
+
+}
+
+ParseTree* Parser::IFF()
+{
+	ParseTree* retTree = new ParseTree();
+
+	if(!(*parser).Advance()) ThrowParserError();
+    
+	(*retTree).SetLeaf1(COND()->getLeaf());
+    
+	if(!((*parser).get().token == THEN))
+    {
+		ThrowParserError();
+	}
+	if(!(*parser).Advance()) ThrowParserError();
+    
+	(*retTree).setAlt(1);
+	(*retTree).SetLeaf2(STMT_SEQ()->getLeaf());
+	if((*parser).get().token == ELSE)
+    {
+		if(!(*parser).Advance()) ThrowParserError();
+		(*retTree).setAlt(2);
+		(*retTree).SetLeaf3(STMT_SEQ()->getLeaf());
+	}
+	if(!((*parser).get().token == ENDIF))
+    {
+		ThrowParserError();
+	}
+
+	if(!(*parser).Advance()) ThrowParserError();
+	if(!((*parser).get().token == SEMI_COLON))
+    {
+		ThrowParserError();
+	}
+
+	if(!(*parser).Advance()) ThrowParserError();
+    
+	return retTree;
+
+}
+
+
+ParseTree* Parser::DOWHILE()
+{
+	ParseTree* retTree = new ParseTree();
+
+	if(!(*parser).Advance()) ThrowParserError();
+    
+	(*retTree).SetLeaf1(STMT_SEQ()->getLeaf());
+
+	if(!((*parser).get().token == WHILE))
+    {
+		ThrowParserError();
+	}
+    
+	if(!(*parser).Advance()) ThrowParserError();
+	(*retTree).SetLeaf2(COND()->getLeaf());
+    
+	if(!((*parser).get().token == ENDDO))
+    {
+		ThrowParserError();
+	}
+
+	if(!(*parser).Advance()) ThrowParserError();
+    
+	if(!((*parser).get().token == SEMI_COLON))
+    {
+		ThrowParserError();
+	}
+
+	if(!(*parser).Advance()) ThrowParserError();
+    
+	return retTree;
+
+}
+ParseTree* Parser::COND()
+{
+	ParseTree* retTree = new ParseTree();
+    
+	if((*parser).get().token == NOT)
+    {
+		(*retTree).setAlt(2);
+
+		if(!(*parser).Advance()) ThrowParserError();
         
-    }
-    
-    (*scanner).Advance();
-    return retTree;
-}
-ParseTree * Parser::OUT()
-{
-    ParseTree * retTree = new ParseTree();
-    (*scanner).Advance();
-    (*retTree).SetChild1((*ID_LIST()).Cursor());
-    if(!((*scanner).GetCurrent() == ";"))
+		(*retTree).SetLeaf1(COND()->getLeaf());
+        
+	}
+    else if((*parser).get().token == LEFT_PAREN)
     {
-        Error("Expected ; token, got " + (*scanner).GetCurrent() + " instead.");
-    }
-    
-    (*scanner).Advance();
-    
-    return retTree;
-}
-ParseTree * Parser::EXPR()
-{
-    ParseTree * retTree = new ParseTree();
-    (*retTree).SetChild1((*TERM()).Cursor());
-    
-    std::cout << "** EXPR DEBUG: "<<(*scanner).GetCurrent() << std::endl;
-    
-    if((*scanner).GetCurrent() == "+") // plus
-    {
-        //set alt 2
-        (*retTree).setAlt(2);
-        (*scanner).Advance(); //get the +
-        (*retTree).SetChild2((*EXPR()).Cursor());
-    }
-    else if((*scanner).GetCurrent() == "-") // minus
-    {
-        //set alt 3
-        (*retTree).setAlt(3);
-        (*scanner).Advance(); // get the -
-        (*retTree).SetChild2((*EXPR()).Cursor());
-    }
-    else
-        (*retTree).setAlt(1);
-    
-    return retTree;
-}
-ParseTree * Parser::COND()
-{
-    ParseTree * retTree = new ParseTree();
-    
-    if((*scanner).GetCurrent() == "!")
-    {
-        (*retTree).setAlt(2);
-        (*scanner).Advance();
-        (*retTree).SetChild1((*COND()).Cursor());
-    }
-    else if((*scanner).GetCurrent() == "(")
-    {
-        (*scanner).Advance();
-        (*retTree).SetChild1((*COND()).Cursor());
-        if((*scanner).GetCurrent() == "AND")
+
+		if(!(*parser).Advance()) ThrowParserError();
+        
+		(*retTree).SetLeaf1(COND()->getLeaf());
+        
+		if((*parser).get().token == AND)
         {
-            (*retTree).setAlt(3);
-        }
-        else if((*scanner).GetCurrent() == "OR")
+			(*retTree).setAlt(3);
+		}
+        else if((*parser).get().token == OR)
         {
-            (*retTree).setAlt(4);
-        }
+			(*retTree).setAlt(4);
+		}
         else
         {
-            Error("Expected AND/OR token, got " + (*scanner).GetCurrent() + " instead.");
-        }
+			ThrowParserError();
+
+		}
+
+		if(!(*parser).Advance()) ThrowParserError();
         
-        (*scanner).Advance();
+		(*retTree).SetLeaf2(COND()->getLeaf());
         
-        (*retTree).SetChild2((*COND()).Cursor());
-        if(!((*scanner).GetCurrent() == ")"))
+		if(!((*parser).get().token == RIGHT_PAREN))
         {
-            Error("Expected ) token, got " + (*scanner).GetCurrent() + " instead.");
-        }
+			ThrowParserError();
+		}
+
+		if(!(*parser).Advance()) ThrowParserError();
+
+	}
+    else
+    {
+		(*retTree).setAlt(1);
+		(*retTree).SetLeaf1(COMP()->getLeaf());
+	}
+	return retTree;
+}
+ParseTree* Parser::COMP()
+{
+	ParseTree* retTree = new ParseTree();
+    
+	if(!((*parser).get().token == LEFT_BRACKET))
+    {
+		ThrowParserError();
+	}
+
+	if(!(*parser).Advance()) ThrowParserError();
+    
+	(*retTree).SetLeaf1(FACTOR()->getLeaf());
+	(*retTree).SetLeaf2(COMP_OP()->getLeaf());
+	(*retTree).SetLeaf3(FACTOR()->getLeaf());
+    
+	if(!((*parser).get().token == RIGHT_BRACKET))
+    {
+		ThrowParserError();
+	}
+
+	if(!(*parser).Advance()) ThrowParserError();
+    
+	return retTree;
+
+}
+ParseTree* Parser::COMP_OP()
+{
+	ParseTree* retTree = new ParseTree();
+	if((*parser).get().token == LESS_THAN)
+    {
+		(*retTree).setAlt(1);
+		if(!(*parser).Advance()) ThrowParserError();
+	}
+    else if((*parser).get().token == EQUAL)
+    {
+		(*retTree).setAlt(2);
+		if(!(*parser).Advance()) ThrowParserError();
+	}
+    else if((*parser).get().token == NOT_EQUAL)
+    {
+		(*retTree).setAlt(3);
+		if(!(*parser).Advance()) ThrowParserError();
+	}
+    else if((*parser).get().token == GREATER_THAN)
+    {
+		(*retTree).setAlt(4);
+		if(!(*parser).Advance()) ThrowParserError();
+        
+	}
+    else if((*parser).get().token == GREATER_THAN_OR_EQUAL)
+    {
+		(*retTree).setAlt(5);
+		if(!(*parser).Advance()) ThrowParserError();
+        
+	}
+    else if((*parser).get().token == LESS_THAN_OR_EQUAL)
+    {
+		(*retTree).setAlt(6);
+
+		if(!(*parser).Advance()) ThrowParserError();
+	}
+    else
+    {
+		ThrowParserError();
+	}
+	return retTree;
+}
+ParseTree* Parser::EXPR()
+{
+	ParseTree* retTree = new ParseTree();
+	(*retTree).SetLeaf1(TERM()->getLeaf());
+    
+	if((*parser).get().token == PLUS)
+    {
+		(*retTree).setAlt(2);
+
+		if(!(*parser).Advance()) ThrowParserError();
+		(*retTree).SetLeaf2(EXPR()->getLeaf());
+	}
+    else if((*parser).get().token == MINUS)
+    {
+		(*retTree).setAlt(3);
+		if(!(*parser).Advance()) ThrowParserError();
+		(*retTree).SetLeaf2(EXPR()->getLeaf());
+
+	}
+    else
+    {
+		(*retTree).setAlt(1);
+	}
+	return retTree;
+}
+ParseTree* Parser::TERM()
+{
+	ParseTree* retTree = new ParseTree();
+	(*retTree).SetLeaf1(FACTOR()->getLeaf());
+    
+	if((*parser).get().token == MULTIPLY)
+    {
+		(*retTree).setAlt(2);
+		if(!(*parser).Advance()) ThrowParserError();
+		(*retTree).SetLeaf2(TERM()->getLeaf());
+	}
+    else
+    {
+		(*retTree).setAlt(1);
+	}
+	return retTree;
+}
+
+ParseTree* Parser::FACTOR()
+{
+	ParseTree* retTree = new ParseTree();
+	if((*parser).get().token == CONST)
+    {
+		(*retTree).setAlt(1);
+		(*retTree).SetLeaf1(CONST_TERMINAL()->getLeaf());
+	}
+    else if((*parser).get().token == ID)
+    {
+		(*retTree).setAlt(2);
+		if(!isin((*parser).get().string))
+        {
+			ThrowParserError();
+		}
+		(*retTree).SetLeaf1(ID_TERMINAL()->getLeaf());
+	}
+    else if((*parser).get().token == MINUS)
+    {
+		(*retTree).setAlt(3);
+
+		if(!(*parser).Advance()) ThrowParserError();
+		(*retTree).SetLeaf1(FACTOR()->getLeaf());
+
+	}
+    else if(!(*parser).get().token == LEFT_PAREN)
+    {
+		(*retTree).setAlt(4);
+        
+		if(!(*parser).Advance()) ThrowParserError();
+		(*retTree).SetLeaf1(EXPR()->getLeaf());
+		if(!((*parser).get().token == RIGHT_PAREN))
+        {
+			ThrowParserError();
+		}
+        
+		if(!(*parser).Advance()) ThrowParserError();
+	}
+    else
+    {
+        ThrowParserError();
+    }
+	return retTree;
+
+}
+
+ParseTree* Parser::CASE_STMT() {
+	ParseTree* retTree = new ParseTree();
+
+	if(!(*parser).Advance()) ThrowParserError();
+    
+	(*retTree).SetLeaf1(ID_TERMINAL()->getLeaf());
+
+    if(!(*parser).Advance()) ThrowParserError();
+        
+	(*retTree).SetLeaf2(CASE_SEQ()->getLeaf());
+
+	if(!((*parser).get().token == SEMI_COLON))
+    {
+		ThrowParserError();
+	}
+	if(!(*parser).Advance()) ThrowParserError();
+    
+	return retTree;
+}
+
+ParseTree* Parser::CASE_SEQ()
+{
+	ParseTree* retTree = new ParseTree();
+	(*retTree).SetLeaf1((*CONST_LIST()).getLeaf());
+
+    if(!(*parser).Advance()) ThrowParserError();
+    (*retTree).SetLeaf2((*EXPR()).getLeaf());
+    
+	if((*parser).get().token == ELSE)
+    {
+		(*retTree).setAlt(2);
+        if(!(*parser).Advance()) ThrowParserError();
+		(*retTree).SetLeaf3((*EXPR()).getLeaf());
+	}
+    else if((*parser).get().token == BAR)
+    {
+		(*retTree).setAlt(1);
+		(*retTree).SetLeaf2(CASE_SEQ()->getLeaf());
+	}
+	return retTree;
+}
+
+ParseTree* Parser::CONST_LIST()
+{
+    ParseTree* retTree = new ParseTree();
+    
+    (*retTree).SetLeaf1((*CONST_TERMINAL()).getLeaf());
+    
+    if((*parser).get().token == COMMA)
+    {
+        (*retTree).setAlt(2);
+        
+        if(!(*parser).Advance()) ThrowParserError();
+        
+        (*retTree).SetLeaf2((*CONST_TERMINAL()).getLeaf());
     }
     else
     {
         (*retTree).setAlt(1);
-        (*retTree).SetChild1((*CMPR()).Cursor());
     }
+    return retTree;
+}
 
-    return retTree;
-}
-ParseTree * Parser::CMPR()
+ParseTree* Parser::OUT()
 {
-    ParseTree * retTree = new ParseTree();
+	ParseTree* retTree = new ParseTree();
+
+    if(!(*parser).Advance()) ThrowParserError();
+		(*retTree).SetLeaf1(ID_LIST(true)->getLeaf());
     
-    if(!((*scanner).GetCurrent() == "["))
-    {
-        Error("Expected [ token, got " + (*scanner).GetCurrent() + " instead.");
-    }
-    (*scanner).Advance();
-    (*retTree).SetChild1((*EXPR()).Cursor());
-    (*retTree).SetChild2((*CMPR_OP()).Cursor());
-    (*retTree).SetChild3((*EXPR()).Cursor());
-    
-    if(!((*scanner).GetCurrent() == "]"))
-    {
-        Error("Expected ] token, got " + (*scanner).GetCurrent() + " instead.");
-    }
-    
-    (*scanner).Advance();
-    
-    return retTree;
+		if(!((*parser).get().token == SEMI_COLON))
+        {
+			ThrowParserError();
+		}
+
+		if(!(*parser).Advance()) ThrowParserError();
+		return retTree;
 }
-ParseTree * Parser::CMPR_OP()
+
+ParseTree* Parser::ID_TERMINAL()
 {
-    ParseTree * retTree = new ParseTree();
+	ParseTree* retTree = new ParseTree();
+	(*retTree).setToken((*parser).get());
     
-    if((*scanner).GetCurrent() == "<")
+	if(!(isin((*parser).get().string)))
     {
-        (*retTree).setAlt(1);
-    }
-    else if((*scanner).GetCurrent() == "=")
+		symbolList[symbolIndex].ID = (*parser).get().string;
+		symbolList[symbolIndex].SYMBOL_INIT_FLAG = false;
+		symbolIndex++;
+	}
+
+	if(!(*parser).Advance()) ThrowParserError();
+	return retTree;
+
+}
+ParseTree* Parser::CONST_TERMINAL()
+{
+	ParseTree* retTree = new ParseTree();
+    
+	if(!((*parser).get().token == CONST))
     {
-        (*retTree).setAlt(2);
-    }
-    else if((*scanner).GetCurrent() == "!=")
+		ThrowParserError();
+	}
+    
+	(*retTree).setToken((*parser).get());
+
+	if(!(*parser).Advance()) ThrowParserError();
+	return retTree;
+
+}
+void Parser::ThrowParserError()
+{
+	std::cout << "*** FATAL PARSER ERROR: unexpected token or end of file.  Exiting to OS. ***" << std::endl;
+    exit(1);
+}
+
+ParseTree* Parser::start(std::string filename)
+{
+    parser = new Scanner(filename.c_str());
+	numSymbols = 0;
+	symbolIndex = 0;
+	symbolList = new Symbol[5000];
+	tree = new ParseTree();
+    
+	(*parser).Advance();
+	Token tmp = (*parser).get();
+    
+	if(tmp.token == PROGRAM)
     {
-        (*retTree).setAlt(3);
-    }
-    else if((*scanner).GetCurrent() == ">")
-    {
-        (*retTree).setAlt(4);
-    }
-    else if((*scanner).GetCurrent() == ">=")
-    {
-        (*retTree).setAlt(5);
-    }
-    else if((*scanner).GetCurrent() == "<=")
-    {
-        (*retTree).setAlt(6);
-    }
+		tree = PROG();
+	}
     else
     {
-        Error("Expected CMPR_OP token, got " + (*scanner).GetCurrent() + " instead.");
-    }
-    (*scanner).Advance();
+        ThrowParserError();
+	}
     
-    return retTree;
+	(*tree).setSymbolList(symbolList);
+	(*tree).setNumSymbols(symbolIndex);
+	return tree;
 }
-ParseTree * Parser::TERM()
-{
-    ParseTree * retTree = new ParseTree();
-    
-    std::cout << "** TERM DEBUG: "<<(*scanner).GetCurrent() << std::endl;
-    
-    (*retTree).SetChild1((*FACTOR()).Cursor());
-    
-    if((*scanner).GetCurrent() == "*")
-    {
-        (*retTree).setAlt(2);
-        (*scanner).Advance();
-        (*retTree).SetChild2((*TERM()).Cursor());
-    }
-    else
-    {
-        (*retTree).setAlt(1);
-    }
-    return retTree;
-}
-ParseTree * Parser::FACTOR()
-{
-    ParseTree * retTree = new ParseTree();
-    
-    std::cout << "** TERM DEBUG: "<<(*scanner).GetCurrent() << std::endl;
-    
-    if((*scanner).CurrentIsCONST())
-    {
-        std::cout << "** TERM DEBUG (inside CurrentIsCONST: "<<(*scanner).GetCurrent() << std::endl;
-        (*retTree).setAlt(1);
-        (*retTree).SetChild1((*CONST()).Cursor());
-    }
-    else if((*scanner).CurrentIsID())
-    {
-        std::cout << "** TERM DEBUG (inside IsID): "<<(*scanner).GetCurrent() << std::endl;
-        (*retTree).setAlt(2);
-        (*retTree).SetChild1((*ID()).Cursor());
-    }
-    else if((*scanner).GetCurrent() == "-")
-    {
-        (*retTree).setAlt(3);
-        (*retTree).SetChild1((*FACTOR()).Cursor());
-    }
-    else if((*scanner).GetCurrent() == "(")
-    {
-        //advance scanner
-        (*scanner).Advance();
-        //call expr
-        (*retTree).SetChild1((*EXPR()).Cursor());
-        (*retTree).setAlt(4);
-        //consume lparen
-        (*scanner).Advance();
-    }
 
-    return retTree;
+bool Parser::isin(std::string s) {
+	for (int i = 0; i < symbolIndex; i++) {
+		if(s == symbolList[i].ID) {
+			return true;
+		}
+	}
+	return false;
 }
-ParseTree * Parser::CASE()
-{
-    ParseTree * retTree = new ParseTree();
 
-    return retTree;
-}
-ParseTree * Parser::CASE_LIST()
-{
-    ParseTree * retTree = new ParseTree();
-
-    return retTree;
-}
-ParseTree * Parser::ID()
-{
-    ParseTree * retTree = new ParseTree();
-    
-    (*retTree).setValue((*scanner).GetCurrent());
-    
-    std::cout << "!DEBUG (ParserID): " << (*retTree).getValue() << std::endl;
-    
-    if(!(*st).IsInTable((*scanner).GetCurrent()))
-    {
-        (*st).InsertSymbol((*retTree).getValue());
-    }
-    
-    
-    std::cout << "!DEBUG (Size): " << (*st).Size() << std::endl;
-    
-    (*scanner).Advance();
-    
-    return retTree;
-}
-ParseTree * Parser::CONST()
-{
-    ParseTree * retTree = new ParseTree();
-    
-    (*retTree).setValue((*scanner).GetCurrent());
-    (*retTree).setAlt(1);
-    
-    //TODO: check to make sure this is actually a const int
-    
-    (*scanner).Advance(); // consume const
-    
-    return retTree;
-}
-ParseTree * Parser::GetTree()
-{
-    return t;
-}

@@ -10,12 +10,8 @@
 
 Tokenizer::Tokenizer()
 {
-    current = 0;
-}
-
-Tokenizer::~Tokenizer()
-{
-
+    //start at negative one so that when we prime/init we end up at 0 to start
+    current = -1;
 }
 
 void  Tokenizer::Tokenize(const std::string &filename)
@@ -24,14 +20,13 @@ void  Tokenizer::Tokenize(const std::string &filename)
     std::vector<std::string> lines;
     std::string source;
     std::string s,s2;
-
+    
     //check if input file exists
     if(!inputFile)
 	{
         std::cout << "ERROR: Could not open specified input file." << std::endl;
 	}
     
-    //right now this only tokenizes one line
     //need to loop through a vector of lines...
     
     //outer loop goes over each line in input file
@@ -57,9 +52,9 @@ void  Tokenizer::Tokenize(const std::string &filename)
 	}
     
 	inputFile.close();
-    AddToken("eof");
+
     //uncomment line below for debug output
-    PrintTokens();
+    //PrintTokens();
 }
 
 void Tokenizer::PrintTokens()
@@ -81,13 +76,13 @@ bool Tokenizer::AddToken(std::string s)
     if(s == "")
         return false;
     tokens.push_back(s);
-
+    
     return true;
 }
 
 bool Tokenizer::NoWhitespace(std::string s)
 {
-    if(s.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,:;[]!=-+<>*()") != std::string::npos)
+    if(s.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,:;[]!=-+<>*()|") != std::string::npos)
     {
         return false;
     }
@@ -101,7 +96,7 @@ bool Tokenizer::ContainsNonAlpha(std::string s)
     int i=0;
     while(i< s.size())
     {
-        if(s[i] == ',' || s[i] == ';' || s[i] == '[' || s[i] == ']' || s[i] == '!' || s[i] == '=' || s[i] == '-' || s[i] == '+' || s[i] == ':' || s[i] == '<' || s[i] == '>' || s[i] == '*' || s[i] == '(' || s[i] == ')')
+        if(s[i] == ',' || s[i] == ';' || s[i] == '[' || s[i] == ']' || s[i] == '!' || s[i] == '=' || s[i] == '-' || s[i] == '+' || s[i] == ':' || s[i] == '<' || s[i] == '>' || s[i] == '*' || s[i] == '(' || s[i] == ')' || s[i] == '|')
             return true;
         i++;
     }
@@ -169,15 +164,29 @@ std::string Tokenizer::SplitNonAlpha(std::string &s)
     s=tmp2;
     s.erase(std::remove(s.begin(), s.end(), ' '), s.end());
     tmp.erase(std::remove(tmp.begin(), tmp.end(), ' '), tmp.end());
-            
+    
     return tmp;
 }
 
 std::string Tokenizer::Get()
 {
     std::string t = tokens[current];
-    current+=1;
     return t;
+}
+
+//returns true if there are tokens available
+//returns false if no tokens available
+bool Tokenizer::Advance()
+{
+    current++;
+    if(current >= tokens.size())
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
 }
 
 std::string Tokenizer::PeekAhead()

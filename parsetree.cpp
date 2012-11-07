@@ -2,122 +2,148 @@
 //  parsetree.cpp
 //  CSE3341
 //
-//  Created by Mike Zazon on 10/5/12.
+//  Created by Mike Zazon on 10/4/12.
 //  Copyright (c) 2012 Mike Zazon. All rights reserved.
 //
 
 #include "parsetree.h"
 
+//ParseTree Class functions
+
 ParseTree::ParseTree()
 {
-    cursor = new ParseTreeLeaf();
-    st = new SymbolTable();
-}
-bool ParseTree::SetChild1(ParseTreeLeaf* child)
-{
-    cursor->SetChild1(child);
-    return true;
+    Leaf = new ParseTreeLeaf();
 }
 
-bool ParseTree::SetChild2(ParseTreeLeaf* child)
+void ParseTree::SetLeaf1(ParseTreeLeaf* leaf)
 {
-    cursor->SetChild2(child);
-    return true;
+    (*Leaf).SetLeaf1(leaf);
 }
 
-bool ParseTree::SetChild3(ParseTreeLeaf* child)
+void ParseTree::SetLeaf2(ParseTreeLeaf* leaf)
 {
-    cursor->SetChild3(child);
-    return true;
+    (*Leaf).SetLeaf2(leaf);
 }
 
-bool ParseTree::SetChild4(ParseTreeLeaf* child)
+void ParseTree::SetLeaf3(ParseTreeLeaf* leaf)
 {
-    cursor->SetChild4(child);
-    return true;
+    (*Leaf).SetLeaf3(leaf);
 }
 
-bool ParseTree::SetChild5(ParseTreeLeaf* child)
+bool ParseTree::first()
 {
-    cursor->SetChild5(child);
-    return true;
+    Leaf = (*Leaf).node1(); return true;
 }
 
-bool ParseTree::CursorTo1()
+bool ParseTree::second()
 {
-    cursor = cursor->GetChild1();
-    return true;
+    Leaf = (*Leaf).node2();return true;
 }
 
-bool ParseTree::CursorTo2()
+bool ParseTree::third()
 {
-    cursor = cursor->GetChild2();
-    return true;
+    Leaf = (*Leaf).node3();return true;
 }
 
-bool ParseTree::CursorTo3()
+bool ParseTree::root()
 {
-    cursor = cursor->GetChild3();
-    return true;
+    Leaf = (*Leaf).rootnode();return true;
 }
 
-bool ParseTree::CursorTo4()
+void ParseTree::setSymbolList(Symbol* x)
 {
-    cursor = cursor->GetChild4();
-    return true;
+    symbolList = x;
 }
 
-bool ParseTree::CursorTo5()
+void ParseTree::setNumSymbols(int x)
 {
-    cursor = cursor->GetChild5();
-    return true;
+    numSymbols = x;
 }
 
-bool ParseTree::setValue(std::string value)
+Symbol* ParseTree::getSymbolList()
 {
-    cursor->setValue(value);
-    return true;
+    return symbolList;
 }
 
-std::string ParseTree::getValue()
+int ParseTree::getNumSymbols()
 {
-    return cursor->getValue();
+    return numSymbols;
 }
 
-bool ParseTree::setAlt(int alt)
+ParseTreeLeaf* ParseTree::getLeaf()
 {
-    cursor->setAlt(alt);
-    return true;
+    return Leaf;
 }
 
-unsigned int ParseTree::getAlt()
+TokenEnum ParseTree::getType()
 {
-    cursor->getAlt();
-    return true;
+    return (*Leaf).getType();
 }
 
-unsigned int ParseTree::InsertSymbol(std::string s)
+std::string ParseTree::getID()
 {
-    return (*st).InsertSymbol(s);
+    return (*Leaf).getID();
 }
 
-std::string ParseTree::GetSymbol(unsigned int ID)
+int ParseTree::getConst()
 {
-    return (*st).GetSymbolByIndex(ID);
+    return (*Leaf).getConst();
 }
 
-unsigned int ParseTree::SymbolTableSize()
+int ParseTree::getAlt()
 {
-    return (*st).Size();
+    return (*Leaf).getAlt();
 }
 
-ParseTreeLeaf* ParseTree::Cursor()
+void ParseTree::setToken(Token x)
 {
-    return cursor;
+    (*Leaf).setToken(x);
 }
 
-bool ParseTree::CursorToParent()
+void ParseTree::setAlt(int x)
 {
-    cursor = (*cursor).GetParent();
-    return true;
+    (*Leaf).setAlt(x);
+}
+
+
+
+// SymbolTable class functions
+
+SymbolTable::SymbolTable()
+{
+    table.push_back("0init");
+}
+
+unsigned int SymbolTable::InsertSymbol(std::string s)
+{
+    table.push_back(s);
+    size++;
+    return size;
+}
+
+std::string SymbolTable::GetSymbolByIndex(unsigned int index)
+{
+    return table[index];
+}
+
+unsigned int SymbolTable::Size()
+{
+    return size;
+}
+
+bool SymbolTable::IsInTable(std::string s)
+{
+    for(int i=0; i<table.size(); i++)
+    {
+        if(table[i] == s)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+Symbol::Symbol()
+{
+    //default constructor
 }

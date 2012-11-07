@@ -10,10 +10,14 @@ Table of Contents
 1.0 Introduction
 2.0 Usage Guide
 3.0 API and Programmers Guide
-3.1 Parser API
-3.1.2 Parse Tree Representation
-3.3 Scanner API
-4.0 References
+3.0.1 Executor API
+3.0.2 Scanner API
+3.0.3 Parser API
+3.0.4 Printer API
+3.0.5 Tokenizer API
+4.0 Parse Tree Representation
+5.0 References
+6.0 Bugs
 
 
 ================
@@ -32,6 +36,7 @@ The application consists of several classes, but the general layout and program 
 |              |     |              |     |              |    |              |
 |==============|     |==============|     |==============|    |==============|
 
+All output is written to stdout
 
 ================
 2.0 Usage Guide
@@ -40,6 +45,8 @@ The application consists of several classes, but the general layout and program 
 To compile the application from source, you must have the g++ GNU C++ compiler
 installed on your system, with all standard libraries installed.
 
+A GNU Makefile is included for ease of compilation of this project.
+
 At the command line run the following command:
 
 "make"
@@ -47,7 +54,213 @@ At the command line run the following command:
 This will invoke the g++ compiler and link all necessary source files into a
 binary executable file called "main".
 
-To run the program, you must specify one input parameter on the command line,
-otherwise an error message will be displayed.  The argument is the path to and
-filename of the input Core language file to be executed.
+You can use "make clean" to remove object and executable files to recompile.
+
+To run the program, you must specify two input arguments on the command line.
+
+The first argument should be a plain text file written in the core language, with no erroneous symbols.
+
+The second argyment should be a plain text file with input for the specified core language program.
+
+The argument is the path to and filename of the input Core language file to be executed.
+If the input files are in the same directory, a path is not needed.
+
+Example:
+
+./main program1 input1
+
+================
+3.0 API and Programmers Guide
+================
+
+3.0.1 - Executor API
+
+A listing of the public functions/methods to the Executor class:
+Each method is named for the usage on specified terminal/non terminal. And should be obvious which one does what.
+
+	Executor();
+    void setID(std::string x, int value);
+	int get(std::string x);
+    void ThrowExecutorError(std::string s);
+    void PROG();
+	void STMT_SEQ();
+	void STMT();
+	void ASSIGN();
+    void start(ParseTree* tree, std::string inputFile);
+	void INN();
+    void OUT();
+	void IFF();
+	void DOLOOP();
+	bool COND();
+	bool COMP();
+	TokenEnum COMP_OP();
+	int EXPR();
+	int TERM();
+	int FACTOR();
+	void CASE_STMT();
+	int CASE_SEQ(std::string ID);
+	std::string IDD();
+    void ID_LIST(bool isUsedFor);
+	int CONST();
+    void CONST_LIST();
+	bool SYMBOL_INIT_FLAG(std::string x);
+	
+	
+3.0.2 - Scanner API
+
+A listing of the public/functions/methods to the Scanner class:
+Each method is named for the usage on specified terminal/non terminal. And should be obvious which one does what.
+
+	Scanner(std::string filename);
+	Token get();
+    bool Next();
+	bool Advance();
+	int getLine();
+	int getv();
+	
+3.0.3 - Parser API
+
+A listing of the public functions/methods to the Parser class:
+Each method is named for the usage on specified terminal/non terminal. And should be obvious which one does what.
+
+(all functions return a ParseTree pointer, except for constructor)
+
+	Parser();
+	ParseTree* start(std::string filename);
+    ParseTree* PROG();
+	ParseTree* DECL_SEQ();
+	ParseTree* STMT_SEQ();
+	ParseTree* DECL();
+	ParseTree* STMT();
+	ParseTree* ASSIGN();
+	ParseTree* IN();
+	ParseTree* IFF();
+	ParseTree* DOWHILE();
+	ParseTree* COND();
+	ParseTree* COMP();
+	ParseTree* COMP_OP();
+	ParseTree* EXPR();
+    ParseTree* CONST_LIST();
+	ParseTree* TERM();
+	ParseTree* FACTOR();
+	ParseTree* CASE_SEQ();
+    ParseTree* ID_LIST(bool in);
+    ParseTree* ID_LIST_CHECK();
+	ParseTree* CASE_STMT();
+	ParseTree* OUT();
+	ParseTree* ID_TERMINAL();
+	ParseTree* CONST_TERMINAL();
+	
+3.0.4 Printer API
+
+A listing of the public functions for the printer.
+Each method is named for the usage on specified terminal/non terminal. And should be obvious which one does what.
+
+	Printer();
+	void start(ParseTree* tree);
+    void INCREASE_INDENT();
+    void DECREASE_INDENT();
+    void PRINT_WHITE_SPACE();
+    void PROG();
+	void DECL_SEQ();
+	void STMT_SEQ();
+	void DECL();
+	void ID_LIST();
+	void STMT();
+	void ASSIGN();
+	void INN();
+	void IFF();
+	void DOLOOP();
+	void COND();
+	void COMP();
+	void COMP_OP();
+	void EXPR();
+	void TERM();
+	void FACTOR();
+	void CASE_STMT();
+	void CASE_SEQ();
+	void OUT();
+	void IDD();
+	void CONST();
+    void CONST_LIST();
+    
+
+3.0.5 Tokenizer API
+
+The Tokenizer reads an input file and extracts non-empty string tokens.  The tokens can be gotten one by one until there are none left.
+
+The public methods for this class are below:
+
+public:
+    Tokenizer();
+    void Tokenize(const std::string &filename);
+    bool Advance();
+    void PrintTokens();
+    bool NoWhitespace(std::string s);
+    bool ContainsNonAlpha(std::string s);
+    std::string SplitNonAlpha(std::string &s);
+    bool ContainsWhitespace(std::string s);
+    void RemoveWhitespace(std::string &s);
+    bool AddToken(std::string s);
+    std::string Get();
+    std::string PeekAhead();
+
+The most important functions are Advance (the scanner calls this often) and Get().
+
+PrintTokens() can be invoked for debug
+
+    
+Tying it all together.
+
+
+================
+4.0 Parse Tree Representation
+================
+
+The Parse Tree is represented using pointers.  Each node (or leaf, as they are defined in the code)
+has a parent (root) and three children, each of which can be parents (roots) for other leaves.
+The idea came from the C++ in Action book: http://www.relisoft.com/book/index.htm
+Specifically, the following link describes the tree representation used: http://www.relisoft.com/book/lang/poly/3tree.html
+
+A parse tree leaf has a lot of information stored with the leaf, however the important members of the class are below:
+
+private:
+	ParseTreeLeaf* First;
+	ParseTreeLeaf* Second;
+	ParseTreeLeaf* Third;
+	ParseTreeLeaf* Parent;
+	
+These pointers are what the tree is built off of.  Each parse tree leaf has pointers to allow for recursive decsent parsing of the tree
+you can get to the parent and children of each parse tree leaf easily using the public functions:
+
+public:
+    void SetLeaf1(ParseTreeLeaf* x);
+    ParseTreeLeaf* node1();
+	void SetLeaf2(ParseTreeLeaf* x);
+    ParseTreeLeaf* node2();
+	void SetLeaf3(ParseTreeLeaf* x);
+	ParseTreeLeaf* node3();
+	
+calling node1 for example returns the first child of the leaf.
+
+================
+5.0 Introduction
+================
+
+C++ In Action book was used to develop the parse tree representation
+
+http://www.relisoft.com/book/lang/poly/3tree.html
+http://www.relisoft.com/book/index.htm
+
+this article on parse trees in c also provided some guidance: http://www.cs.man.ac.uk/~pjj/cs2121/ho/node8.html
+
+================
+6.0 Bugs
+================
+
+The implementation does not handle case-stmt, case and CONST LIST properly.  
+There is some debugging to do to get this part correct.
+Specifically, the CONST LIST does not get passed into the executor logic properly.
+The programmer chose to take a late submission penalty to fix this but never got it working.
+Some instances of do/while loop may not execute properly, especially for infinite loops.
 

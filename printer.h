@@ -2,51 +2,49 @@
 //  printer.h
 //  CSE3341
 //
-//  Created by Mike Zazon on 10/7/12.
+//  Created by Mike Zazon on 10/4/12.
 //  Copyright (c) 2012 Mike Zazon. All rights reserved.
 //
 
 #ifndef __CSE3341__printer__
 #define __CSE3341__printer__
 
-#include <iostream>
-#include "parsetree.h"
 #include "parsetreeleaf.h"
+#include "parsetree.h"
 
 class Printer {
 private:
-    ParseTree* t;
-    int i;
+	ParseTree* MyTree;
+	int numSpaces;
 public:
-    Printer();
-    Printer(ParseTree * tree);
-    void PROG();
-    void DECL_SEQ();
-    void STMT_SEQ();
-    void DECL();
-    void STMT();
-    void ID_LIST();
-    void ASSIGN();
-    void IF();
-    void LOOP();
-    void IN();
-    void OUT();
-    void EXPR();
-    void COND();
-    void CMPR();
-    void CMPR_OP();
-    void TERM();
-    void FACTOR();
-    void CASE();
-    void CASE_LIST();
-    void ID();
-    void CONST();
+	Printer();
+	void start(ParseTree* tree);
     void INCREASE_INDENT();
     void DECREASE_INDENT();
-    void Print(std::string s);
-    void Space();
-    void NewLine();
-    
+    void PRINT_WHITE_SPACE();
+    void PROG();
+	void DECL_SEQ();
+	void STMT_SEQ();
+	void DECL();
+	void ID_LIST();
+	void STMT();
+	void ASSIGN();
+	void INN();
+	void IFF();
+	void DOLOOP();
+	void COND();
+	void COMP();
+	void COMP_OP();
+	void EXPR();
+	void TERM();
+	void FACTOR();
+	void CASE_STMT();
+	void CASE_SEQ();
+	void OUT();
+	void IDD();
+	void CONST();
+    void CONST_LIST();
+
 };
 
 #endif /* defined(__CSE3341__printer__) */

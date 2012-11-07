@@ -1,45 +1,41 @@
 //
-//  parsetreenode.h
+//  main.cpp
 //  CSE3341
 //
-//  Created by Mike Zazon on 10/5/12.
+//  Created by Mike Zazon on 10/4/12.
 //  Copyright (c) 2012 Mike Zazon. All rights reserved.
 //
 
-#ifndef __CSE3341__parsetreenode__
-#define __CSE3341__parsetreenode__
+#ifndef __CSE3341__parsetreeleaf__
+#define __CSE3341__parsetreeleaf__
 
+#include "tokenizer.h"
 
-
-class ParseTreeLeaf
-{
-private:
-    ParseTreeLeaf* parent;
-    ParseTreeLeaf* child1;
-    ParseTreeLeaf* child2;
-    ParseTreeLeaf* child3;
-    ParseTreeLeaf* child4;
-    ParseTreeLeaf* child5;
-    unsigned int alt;
-    std::string value;
+class ParseTreeLeaf {
 public:
-    ParseTreeLeaf();
-    bool setValue(std::string v);
-    std::string getValue();
-    bool setAlt(int alt);
-    unsigned int getAlt();
-    ParseTreeLeaf* GetParent();
-    ParseTreeLeaf* GetChild1();
-    ParseTreeLeaf* GetChild2();
-    ParseTreeLeaf* GetChild3();
-    ParseTreeLeaf* GetChild4();
-    ParseTreeLeaf* GetChild5();
-    bool SetParent(ParseTreeLeaf* p);
-    bool SetChild1(ParseTreeLeaf* c);
-    bool SetChild2(ParseTreeLeaf* c);
-    bool SetChild3(ParseTreeLeaf* c);
-    bool SetChild4(ParseTreeLeaf* c);
-    bool SetChild5(ParseTreeLeaf* c);
+	TokenEnum getType();
+	std::string getID();
+	int getConst();
+	int getAlt();
+    void SetLeaf1(ParseTreeLeaf* x);
+    ParseTreeLeaf* node1();
+	void SetLeaf2(ParseTreeLeaf* x);
+    ParseTreeLeaf* node2();
+	void SetLeaf3(ParseTreeLeaf* x);
+	ParseTreeLeaf* node3();
+	ParseTreeLeaf* rootnode();
+	void setToken(Token x);
+	void setAlt(int x);
+
+private:
+	int Alt;
+	Token type;
+	ParseTreeLeaf* First;
+	ParseTreeLeaf* Second;
+	ParseTreeLeaf* Third;
+	ParseTreeLeaf* Parent;
+
 };
 
-#endif /* defined(__CSE3341__parsetreenode__) */
+
+#endif /* defined(__CSE3341__parsetreeleaf__) */
