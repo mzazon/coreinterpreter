@@ -1,0 +1,53 @@
+//
+//  README
+//  CSE3341
+//
+//  Created by Mike Zazon on 10/4/12.
+//  Copyright (c) 2012 Mike Zazon. All rights reserved.
+//
+
+Table of Contents
+1.0 Introduction
+2.0 Usage Guide
+3.0 API and Programmers Guide
+3.1 Parser API
+3.1.2 Parse Tree Representation
+3.3 Scanner API
+4.0 References
+
+
+================
+1.0 Introduction
+================
+
+This application implements a scanner, parser, and executor for the Toy language
+"Core" as defined in the CSE3341 Project Description.
+
+The application consists of several classes, but the general layout and program flow is described below:
+
+
+|==============|     |==============|     |==============|    |==============|
+| Input file   |     | Scanner      |     | Parser       |    | Executor     |
+|              |---> |              |---> |              |--->|              |
+|              |     |              |     |              |    |              |
+|==============|     |==============|     |==============|    |==============|
+
+
+================
+2.0 Usage Guide
+================
+
+To compile the application from source, you must have the g++ GNU C++ compiler
+installed on your system, with all standard libraries installed.
+
+At the command line run the following command:
+
+"make"
+
+This will invoke the g++ compiler and link all necessary source files into a
+binary executable file called "main".
+
+To run the program, you must specify one input parameter on the command line,
+otherwise an error message will be displayed.  The argument is the path to and
+filename of the input Core language file to be executed.
+
